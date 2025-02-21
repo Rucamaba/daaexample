@@ -12,6 +12,7 @@ import javax.ws.rs.core.Application;
 
 import es.uvigo.esei.daa.rest.PeopleResource;
 import es.uvigo.esei.daa.rest.UsersResource;
+import es.uvigo.esei.daa.rest.PetResource;
 
 /**
  * Configuration of the REST application. This class includes the resources and
@@ -26,7 +27,8 @@ public class DAAExampleApplication extends Application {
 	public Set<Class<?>> getClasses() {
 		return Stream.of(
 			PeopleResource.class,
-			UsersResource.class
+			UsersResource.class,
+			PetResource.class
 		).collect(toSet());
 	}
 	
