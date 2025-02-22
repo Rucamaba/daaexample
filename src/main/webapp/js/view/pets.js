@@ -1,64 +1,79 @@
-var PetsView = (function() {
+var PetsView = (function () {
     var dao;
-    
+    var currentOwnerId;
+
     // Referencia a this que permite acceder a las funciones públicas desde las funciones de jQuery.
     var self;
-    
-    var formId = 'pets-form';
-    var listId = 'pets-list';
-    var formQuery = '#' + formId;
-    var listQuery = '#' + listId;
-    
-    function PetsView(petsDao, formContainerId, listContainerId) {
+
+    var formId;
+    var listId;
+    var formQuery;
+    var listQuery;
+
+    function PetsView(petsDao, formContainerId, listContainerId, ownerId) {
         dao = petsDao;
         self = this;
-        
+        currentOwnerId = ownerId;
+
+        // Make IDs unique per owner
+        formId = 'pets-form-' + currentOwnerId;
+        listId = 'pets-list-' + currentOwnerId;
+        formQuery = '#' + formId;
+        listQuery = '#' + listId;
+
         insertPetsForm($('#' + formContainerId));
         insertPetsList($('#' + listContainerId));
-        
-        this.init = function() {
-            dao.listPets(function(pets) {
-                $.each(pets, function(key, pet) {
-                    appendToTable(pet);
-                });
-            },
-            function() {
-                alert('No ha sido posible acceder al listado de mascotas.');
-            });
-            
+
+        this.init = function () {
+            refreshPetsList();
+
             // La acción por defecto de enviar formulario (submit) se sobreescribe
             // para que el envío sea a través de AJAX
-            $(formQuery).submit(function(event) {
+            $(formQuery).submit(function (event) {
+                event.preventDefault();
+
                 var pet = self.getPetInForm();
-                
+                pet.owner = { id: currentOwnerId };
+
                 if (self.isEditing()) {
-                    dao.modifyPet(pet,
-                        function(pet) {
-                            $('#pet-' + pet.id + ' td.name').text(pet.name);
-                            $('#pet-' + pet.id + ' td.type').text(pet.type);
+                    dao.modifyPet(currentOwnerId, pet,
+                        function (pet) {
+                            $('#pet-' + pet.id + '-owner-' + currentOwnerId + ' td.name').text(pet.name);
+                            $('#pet-' + pet.id + '-owner-' + currentOwnerId + ' td.type').text(pet.type);
                             self.resetForm();
+                            showSuccessMessage('Mascota modificada correctamente');
                         },
                         showErrorMessage,
                         self.enableForm
                     );
                 } else {
-                    dao.addPet(pet,
-                        function(pet) {
-                            appendToTable(pet);
+                    // Disable form while submitting
+                    self.disableForm();
+
+                    dao.addPet(currentOwnerId, pet,
+                        function (pet) {
+                            // Clear form fields first
                             self.resetForm();
+                            // Then refresh the list
+                            refreshPetsList();
+                            // Re-enable form
+                            self.enableForm();
+                            showSuccessMessage('Mascota añadida correctamente');
                         },
-                        showErrorMessage,
-                        self.enableForm
+                        function (error) {
+                            showErrorMessage(error);
+                            self.enableForm();
+                        }
                     );
                 }
-                
+
                 return false;
             });
-            
-            $('#btnClear').click(this.resetForm);
+
+            $('#btnClear-' + currentOwnerId).click(this.resetForm);
         };
 
-        this.getPetInForm = function() {
+        this.getPetInForm = function () {
             var form = $(formQuery);
             return {
                 'id': form.find('input[name="id"]').val(),
@@ -67,8 +82,8 @@ var PetsView = (function() {
             };
         };
 
-        this.getPetInRow = function(id) {
-            var row = $('#pet-' + id);
+        this.getPetInRow = function (id) {
+            var row = $('#pet-' + id + '-owner-' + currentOwnerId);
 
             if (row !== undefined) {
                 return {
@@ -80,54 +95,56 @@ var PetsView = (function() {
                 return undefined;
             }
         };
-        
-        this.editPet = function(id) {
-            var row = $('#pet-' + id);
+
+        this.editPet = function (id) {
+            var row = $('#pet-' + id + '-owner-' + currentOwnerId);
 
             if (row !== undefined) {
                 var form = $(formQuery);
-                
+
                 form.find('input[name="id"]').val(id);
                 form.find('input[name="name"]').val(row.find('td.name').text());
                 form.find('input[name="type"]').val(row.find('td.type').text());
-                
-                $('input#btnSubmit').val('Modificar');
+
+                $('#btnSubmit-' + currentOwnerId).val('Modificar');
             }
         };
-        
-        this.deletePet = function(id) {
+
+        this.deletePet = function (id) {
             if (confirm('Está a punto de eliminar una mascota. ¿Está seguro de que desea continuar?')) {
-                dao.deletePet(id,
-                    function() {
-                        $('tr#pet-' + id).remove();
+                dao.deletePet(currentOwnerId, id,
+                    function () {
+                        $('#pet-' + id + '-owner-' + currentOwnerId).remove();
+                        showSuccessMessage('Mascota eliminada correctamente');
                     },
                     showErrorMessage
                 );
             }
         };
 
-        this.isEditing = function() {
+        this.isEditing = function () {
             return $(formQuery + ' input[name="id"]').val() != "";
         };
 
-        this.disableForm = function() {
+        this.disableForm = function () {
             $(formQuery + ' input').prop('disabled', true);
         };
 
-        this.enableForm = function() {
+        this.enableForm = function () {
             $(formQuery + ' input').prop('disabled', false);
         };
 
-        this.resetForm = function() {
+        this.resetForm = function () {
             $(formQuery)[0].reset();
             $(formQuery + ' input[name="id"]').val('');
-            $('#btnSubmit').val('Crear');
+            $('#btnSubmit-' + currentOwnerId).val('Crear');
         };
     };
-    
-    var insertPetsList = function(parent) {
-        parent.append(
-            '<table id="' + listId + '" class="table">\
+
+    var insertPetsList = function (parent) {
+        parent.empty().append(
+            '<div id="feedback-' + currentOwnerId + '" class="alert" style="display:none; margin-bottom: 15px;"></div>\
+            <table id="' + listId + '" class="table">\
                 <thead>\
                     <tr class="row">\
                         <th class="col-sm-4">Nombre</th>\
@@ -141,9 +158,10 @@ var PetsView = (function() {
         );
     };
 
-    var insertPetsForm = function(parent) {
-        parent.append(
-            '<form id="' + formId + '" class="mb-5 mb-10">\
+    var insertPetsForm = function (parent) {
+        parent.empty().append(
+            '<h6>Añadir nueva mascota:</h6>\
+            <form id="' + formId + '" class="mb-5 mb-10">\
                 <input name="id" type="hidden" value=""/>\
                 <div class="row">\
                     <div class="col-sm-4">\
@@ -153,16 +171,16 @@ var PetsView = (function() {
                         <input name="type" type="text" value="" placeholder="Tipo" class="form-control" required/>\
                     </div>\
                     <div class="col-sm-3">\
-                        <input id="btnSubmit" type="submit" value="Crear" class="btn btn-primary" />\
-                        <input id="btnClear" type="reset" value="Limpiar" class="btn" />\
+                        <input id="btnSubmit-' + currentOwnerId + '" type="submit" value="Crear" class="btn btn-primary" />\
+                        <input id="btnClear-' + currentOwnerId + '" type="reset" value="Limpiar" class="btn" />\
                     </div>\
                 </div>\
             </form>'
         );
     };
 
-    var createPetRow = function(pet) {
-        return '<tr id="pet-'+ pet.id +'" class="row">\
+    var createPetRow = function (pet) {
+        return '<tr id="pet-' + pet.id + '-owner-' + currentOwnerId + '" class="row">\
             <td class="name col-sm-4">' + pet.name + '</td>\
             <td class="type col-sm-5">' + pet.type + '</td>\
             <td class="col-sm-3">\
@@ -172,25 +190,51 @@ var PetsView = (function() {
         </tr>';
     };
 
-    var showErrorMessage = function(jqxhr, textStatus, error) {
-        alert(textStatus + ": " + error);
+    var showErrorMessage = function (jqxhr, textStatus, error) {
+        var feedback = $('#feedback-' + currentOwnerId);
+        feedback.removeClass('alert-success').addClass('alert-danger')
+            .text((textStatus || 'Error') + (error ? ": " + error : ''))
+            .fadeIn()
+            .delay(3000)
+            .fadeOut();
     };
 
-    var addRowListeners = function(pet) {
-        $('#pet-' + pet.id + ' a.edit').click(function() {
-            self.editPet(pet.id);
-        });
-        
-        $('#pet-' + pet.id + ' a.delete').click(function() {
-            self.deletePet(pet.id);
-        });
+    var showSuccessMessage = function (message) {
+        var feedback = $('#feedback-' + currentOwnerId);
+        feedback.removeClass('alert-danger').addClass('alert-success')
+            .text(message)
+            .fadeIn()
+            .delay(3000)
+            .fadeOut();
     };
 
-    var appendToTable = function(pet) {
+    var refreshPetsList = function () {
+        $(listQuery + ' > tbody').empty();
+        dao.listPets(currentOwnerId, function (pets) {
+            $.each(pets, function (key, pet) {
+                appendToTable(pet);
+            });
+        },
+            function () {
+                showErrorMessage(null, 'No ha sido posible acceder al listado de mascotas');
+            });
+    };
+
+    var appendToTable = function (pet) {
         $(listQuery + ' > tbody:last')
             .append(createPetRow(pet));
         addRowListeners(pet);
     };
-    
+
+    var addRowListeners = function (pet) {
+        $('#pet-' + pet.id + '-owner-' + currentOwnerId + ' a.edit').click(function () {
+            self.editPet(pet.id);
+        });
+
+        $('#pet-' + pet.id + '-owner-' + currentOwnerId + ' a.delete').click(function () {
+            self.deletePet(pet.id);
+        });
+    };
+
     return PetsView;
 })();

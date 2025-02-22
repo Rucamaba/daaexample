@@ -24,7 +24,7 @@ var PeopleView = (function() {
                 });
             },
             function() {
-                	alert('No has sido posible acceder al listado de personas.');
+                alert('No has sido posible acceder al listado de personas.');
             });
             
             // La acción por defecto de enviar formulario (submit) se sobreescribe
@@ -124,8 +124,6 @@ var PeopleView = (function() {
             $(formQuery + ' input[name="id"]').val('');
             $('#btnSubmit').val('Crear');
         };
-
-        var petsDao = new PetsDAO();
     };
     
     var insertPeopleList = function(parent) {
@@ -207,10 +205,12 @@ var PeopleView = (function() {
                 self.petsDao.listPets(person.id,
                     function(pets) {
                         console.log('Pets received:', pets);
-                        var petsList = '<tr class="pets-list"><td colspan="3" class="p-3">\
-                            <div class="ms-4">\
-                                <h6>Mascotas de ' + person.name + ':</h6>\
-                                <ul class="list-group">';
+                        var petsList = '<tr class="pets-list">\
+                            <td colspan="3" class="p-3">\
+                                <div class="ms-4">\
+                                    <h6>Mascotas de ' + person.name + ':</h6>\
+                                    <div id="pets-list-container-' + person.id + '">\
+                                        <ul class="list-group">';
                         
                         if (!pets || pets.length === 0) {
                             petsList += '<li class="list-group-item">No tiene mascotas</li>';
@@ -222,8 +222,24 @@ var PeopleView = (function() {
                             });
                         }
                         
-                        petsList += '</ul></div></td></tr>';
+                        petsList += '</ul>\
+                                    </div>\
+                                    <div id="pets-form-container-' + person.id + '" class="mt-3">\
+                                    </div>\
+                                </div>\
+                            </td>\
+                        </tr>';
+                        
                         personRow.after(petsList);
+                        
+                        // Initialize PetsView for this person
+                        var petsView = new PetsView(
+                            self.petsDao,
+                            'pets-form-container-' + person.id,
+                            'pets-list-container-' + person.id,
+                            person.id
+                        );
+                        petsView.init();
                     },
                     function(error) {
                         console.error('Error fetching pets:', error);
