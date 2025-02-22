@@ -22,11 +22,11 @@ public class PetResource {
     private final static Logger LOG = Logger.getLogger(PetResource.class.getName());
 
     @GET
-    public List<Pet> list() {
+    public List<Pet> list(@PathParam("id") int ownerId) {
         try {
-            return dao.list();
+            return dao.listByOwner(ownerId);
         } catch (DAOException e) {
-            LOG.log(Level.SEVERE, "Error listing pets", e);
+            LOG.log(Level.SEVERE, "Error listing pets for owner: " + ownerId, e);
             throw new WebApplicationException("Error listing pets", e);
         }
     }

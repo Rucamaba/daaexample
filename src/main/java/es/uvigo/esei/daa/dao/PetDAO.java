@@ -51,7 +51,7 @@ public class PetDAO extends DAO {
 
     /**
      * Returns a list with all the pets persisted in the system.
-     * 
+     *
      * @return a list with all the pets persisted in the system.
      * @throws DAOException if an error happens while retrieving the pets.
      */
@@ -72,6 +72,36 @@ public class PetDAO extends DAO {
             }
         } catch (SQLException e) {
             LOG.log(Level.SEVERE, "Error listing pets", e);
+            throw new DAOException(e);
+        }
+    }
+
+    /**
+     * Returns a list of pets owned by a specific person.
+     *
+     * @param ownerId identifier of the owner person
+     * @return a list with all the pets owned by the specified person
+     * @throws DAOException if an error happens while retrieving the pets
+     */
+    public List<Pet> listByOwner(int ownerId) throws DAOException {
+        try (final Connection conn = this.getConnection()) {
+            final String query = "SELECT * FROM pets WHERE owner_id = ?";
+            
+            try (final PreparedStatement statement = conn.prepareStatement(query)) {
+                statement.setInt(1, ownerId);
+                
+                try (final ResultSet result = statement.executeQuery()) {
+                    final List<Pet> pets = new LinkedList<>();
+                    
+                    while (result.next()) {
+                        pets.add(rowToEntity(result));
+                    }
+                    
+                    return pets;
+                }
+            }
+        } catch (SQLException e) {
+            LOG.log(Level.SEVERE, "Error listing pets by owner", e);
             throw new DAOException(e);
         }
     }

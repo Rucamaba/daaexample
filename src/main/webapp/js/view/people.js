@@ -12,6 +12,7 @@ var PeopleView = (function() {
     function PeopleView(peopleDao, formContainerId, listContainerId) {
         dao = peopleDao;
         self = this;
+        this.petsDao = new PetsDAO();
         
         insertPeopleForm($('#' + formContainerId));
         insertPeopleList($('#' + listContainerId));
@@ -123,6 +124,8 @@ var PeopleView = (function() {
             $(formQuery + ' input[name="id"]').val('');
             $('#btnSubmit').val('Crear');
         };
+
+        var petsDao = new PetsDAO();
     };
     
     var insertPeopleList = function(parent) {
@@ -130,9 +133,9 @@ var PeopleView = (function() {
             '<table id="' + listId + '" class="table">\
                 <thead>\
                     <tr class="row">\
-                        <th class="col-sm-4">Nombre</th>\
-                        <th class="col-sm-5">Apellido</th>\
-                        <th class="col-sm-3">&nbsp;</th>\
+                        <th class="col-sm-3">Nombre</th>\
+                        <th class="col-sm-4">Apellido</th>\
+                        <th class="col-sm-5">Acciones</th>\
                     </tr>\
                 </thead>\
                 <tbody>\
@@ -162,15 +165,17 @@ var PeopleView = (function() {
     };
 
     var createPersonRow = function(person) {
-        return '<tr id="person-'+ person.id +'" class="row">\
-            <td class="name col-sm-4">' + person.name + '</td>\
-            <td class="surname col-sm-5">' + person.surname + '</td>\
-            <td class="col-sm-3">\
-                <a class="edit btn btn-primary" href="#">Editar</a>\
-                <a class="delete btn btn-warning" href="#">Eliminar</a>\
-                <a class="view-pets btn btn-primary" href="javascript:void(0);">Ver Mascotas</a>\
+        var row = $('<tr id="person-'+ person.id +'" class="row">\
+            <td class="name col-sm-3">' + person.name + '</td>\
+            <td class="surname col-sm-4">' + person.surname + '</td>\
+            <td class="col-sm-5">\
+                <a class="edit btn btn-primary btn-sm me-1" href="#">Editar</a>\
+                <a class="delete btn btn-warning btn-sm me-1" href="#">Eliminar</a>\
+                <a class="view-pets btn btn-success btn-sm" href="#">Ver Mascotas</a>\
             </td>\
-        </tr>';
+        </tr>');
+        
+        return row[0].outerHTML;
     };
 
     var showErrorMessage = function(jqxhr, textStatus, error) {
@@ -186,13 +191,49 @@ var PeopleView = (function() {
             self.deletePerson(person.id);
         });
 
-        $('#person-' + person.id + ' a.view-pets').click(function() {
-            dao.listPets(person.id, function(pets) {
-                var petNames = pets.map(function(pet) {
-                    return pet.name;
-                }).join(', ');
-                alert('Mascotas de ' + person.name + ': ' + petNames);
-            }, showErrorMessage);
+        $('#person-' + person.id + ' a.view-pets').on('click', function(event) {
+            event.preventDefault();
+            console.log('View pets clicked for person:', person);
+            
+            var personRow = $('#person-' + person.id);
+            var existingPetsList = personRow.next('.pets-list');
+            
+            if (existingPetsList.length) {
+                existingPetsList.remove();
+                return;
+            }
+
+            try {
+                self.petsDao.listPets(person.id,
+                    function(pets) {
+                        console.log('Pets received:', pets);
+                        var petsList = '<tr class="pets-list"><td colspan="3" class="p-3">\
+                            <div class="ms-4">\
+                                <h6>Mascotas de ' + person.name + ':</h6>\
+                                <ul class="list-group">';
+                        
+                        if (!pets || pets.length === 0) {
+                            petsList += '<li class="list-group-item">No tiene mascotas</li>';
+                        } else {
+                            pets.forEach(function(pet) {
+                                petsList += '<li class="list-group-item">\
+                                    <strong>' + pet.name + '</strong> (' + pet.type + ')\
+                                </li>';
+                            });
+                        }
+                        
+                        petsList += '</ul></div></td></tr>';
+                        personRow.after(petsList);
+                    },
+                    function(error) {
+                        console.error('Error fetching pets:', error);
+                        showErrorMessage(error);
+                    }
+                );
+            } catch (e) {
+                console.error('Exception in view-pets handler:', e);
+                showErrorMessage(e);
+            }
         });
     };
 
