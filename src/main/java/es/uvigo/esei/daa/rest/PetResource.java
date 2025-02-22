@@ -14,7 +14,7 @@ import es.uvigo.esei.daa.entities.Person;
 import es.uvigo.esei.daa.dao.PeopleDAO;
 import es.uvigo.esei.daa.dao.DAOException;
 
-@Path("/pets")
+@Path("/people/{id}/pets")
 @Produces(MediaType.APPLICATION_JSON)
 public class PetResource {
     private final PetDAO dao = new PetDAO();
