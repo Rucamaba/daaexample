@@ -1,5 +1,12 @@
+SET NAMES utf8mb4;
+SET CHARACTER SET utf8mb4;
+
 DROP DATABASE IF EXISTS `daaexample`;
-CREATE DATABASE `daaexample`;
+CREATE DATABASE `daaexample`
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+USE `daaexample`;
 
 CREATE TABLE `daaexample`.`people` (
 	`id` int NOT NULL AUTO_INCREMENT,
