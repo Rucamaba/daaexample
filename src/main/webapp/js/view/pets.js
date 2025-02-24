@@ -7,6 +7,7 @@ var PetsView = (function () {
     var listId;
     var formQuery;
     var listQuery;
+    var currentTypes = []; // Store current types list
 
     function PetsView(petsDao, typesDao, formContainerId, listContainerId, ownerId) {
         console.log('Initializing PetsView with ownerId:', ownerId);
@@ -22,13 +23,16 @@ var PetsView = (function () {
 
         insertPetsForm($('#' + formContainerId));
         insertPetsList($('#' + listContainerId));
+        insertTypeModal();
 
         // Initialize form with types
         console.log('Loading pet types...');
         typeDao.listTypes(
             function(types) {
                 console.log('Types loaded successfully:', types);
+                currentTypes = types; // Store types list
                 loadTypeSelect(types);
+                loadTypesList(types); // Load types in the modal's list
             },
             function(error) {
                 console.error('Error loading types:', error);
@@ -77,11 +81,79 @@ var PetsView = (function () {
             });
 
             $('#btnClear-' + currentOwnerId).click(this.resetForm);
+
+            // Add handler for type select change
+            $(formQuery + ' select[name="type"]').change(function() {
+                if ($(this).val() === 'other') {
+                    $('#typeModal-' + currentOwnerId).modal('show');
+                    $('#customTypeName-' + currentOwnerId).val('').focus();
+                }
+            });
+
+            // Add handler for type search input
+            $('#customTypeName-' + currentOwnerId).on('input', function() {
+                var searchText = $(this).val().toLowerCase();
+                filterTypesList(searchText);
+            });
+
+            // Add handler for type list item click
+            $('#typesList-' + currentOwnerId).on('click', '.type-item', function() {
+                var typeId = $(this).data('type-id');
+                var select = $(formQuery + ' select[name="type"]');
+                select.val(typeId);
+                $('#typeModal-' + currentOwnerId).modal('hide');
+                showSuccessMessage('Tipo seleccionado');
+            });
+
+            // Add handler for custom type form submit
+            $('#customTypeForm-' + currentOwnerId).submit(function(event) {
+                event.preventDefault();
+                var customTypeName = $('#customTypeName-' + currentOwnerId).val();
+                
+                if (customTypeName) {
+                    // Check if type already exists (case-insensitive)
+                    var existingType = currentTypes.find(function(type) {
+                        return type.name.toLowerCase() === customTypeName.toLowerCase();
+                    });
+
+                    if (existingType) {
+                        // If type exists, just select it
+                        var select = $(formQuery + ' select[name="type"]');
+                        select.val(existingType.id);
+                        $('#typeModal-' + currentOwnerId).modal('hide');
+                        $('#customTypeName-' + currentOwnerId).val('');
+                        showSuccessMessage('Tipo seleccionado');
+                    } else {
+                        // If type doesn't exist, create new one
+                        typeDao.addType({ name: customTypeName },
+                            function(newType) {
+                                // Add the new type to both the select and our current types list
+                                currentTypes.push(newType);
+                                var select = $(formQuery + ' select[name="type"]');
+                                select.find('option[value="other"]').before(
+                                    $('<option>', {
+                                        value: newType.id,
+                                        text: newType.name
+                                    })
+                                );
+                                select.val(newType.id);
+                                loadTypesList(currentTypes); // Refresh types list
+                                $('#typeModal-' + currentOwnerId).modal('hide');
+                                $('#customTypeName-' + currentOwnerId).val('');
+                            },
+                            function(error) {
+                                showErrorMessage(error);
+                            }
+                        );
+                    }
+                }
+                return false;
+            });
         };
 
         this.getPetInForm = function () {
             var form = $(formQuery);
-            var typeId = form.find('select[name="type"]').val();
+            var typeId = form.find('input[name="type"]').val();
             return {
                 'id': form.find('input[name="id"]').val(),
                 'name': form.find('input[name="name"]').val(),
@@ -177,6 +249,40 @@ var PetsView = (function () {
         } else {
             console.warn('No types available to load in select');
         }
+
+        // Add "Other" option
+        select.append($('<option>', {
+            value: 'other',
+            text: 'Otro'
+        }));
+    };
+
+    var loadTypesList = function(types) {
+        var list = $('#typesList-' + currentOwnerId);
+        list.empty();
+        
+        if (types && types.length > 0) {
+            $.each(types, function(i, type) {
+                list.append(
+                    $('<div>', {
+                        class: 'type-item',
+                        'data-type-id': type.id,
+                        text: type.name
+                    })
+                );
+            });
+        }
+    };
+
+    var filterTypesList = function(searchText) {
+        $('.type-item').each(function() {
+            var typeName = $(this).text().toLowerCase();
+            if (typeName.includes(searchText)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
     };
 
     var insertPetsList = function (parent) {
@@ -196,6 +302,79 @@ var PetsView = (function () {
         );
     };
 
+    var insertTypeModal = function() {
+        $('body').append('\
+            <div class="modal fade" id="typeModal-' + currentOwnerId + '" tabindex="-1" aria-hidden="true">\
+                <div class="modal-dialog">\
+                    <div class="modal-content">\
+                        <div class="modal-header">\
+                            <h5 class="modal-title">Especificar tipo de mascota</h5>\
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>\
+                        </div>\
+                        <div class="modal-body">\
+                            <form id="customTypeForm-' + currentOwnerId + '">\
+                                <div class="mb-3">\
+                                    <label for="customTypeName-' + currentOwnerId + '" class="form-label">Buscar o añadir nuevo tipo</label>\
+                                    <div class="input-group mb-2">\
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>\
+                                        <input type="text" class="form-control form-control-lg" \
+                                            id="customTypeName-' + currentOwnerId + '" \
+                                            placeholder="Escriba para buscar o añadir tipo" \
+                                            required autocomplete="off">\
+                                    </div>\
+                                    <div id="typesList-' + currentOwnerId + '" class="types-list">\
+                                    </div>\
+                                </div>\
+                                <div class="mt-3 d-flex justify-content-end">\
+                                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancelar</button>\
+                                    <button type="submit" class="btn btn-primary">Guardar nuevo tipo</button>\
+                                </div>\
+                            </form>\
+                        </div>\
+                    </div>\
+                </div>\
+            </div>\
+            <style>\
+                .types-list {\
+                    max-height: 300px;\
+                    overflow-y: auto;\
+                    margin-top: 10px;\
+                    border: 1px solid #dee2e6;\
+                    border-radius: 4px;\
+                    background-color: white;\
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);\
+                }\
+                .type-item {\
+                    padding: 12px 16px;\
+                    cursor: pointer;\
+                    transition: background-color 0.2s;\
+                    background-color: white;\
+                    font-size: 16px;\
+                }\
+                .type-item:hover {\
+                    background-color: #e9ecef;\
+                }\
+                .type-item:not(:last-child) {\
+                    border-bottom: 1px solid #dee2e6;\
+                }\
+                #typeModal-' + currentOwnerId + ' .modal-body {\
+                    padding: 20px;\
+                }\
+                #typeModal-' + currentOwnerId + ' .form-control:focus {\
+                    border-color: #80bdff;\
+                    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);\
+                }\
+                #typeModal-' + currentOwnerId + ' .input-group-text {\
+                    background-color: white;\
+                    border-right: none;\
+                }\
+                #customTypeName-' + currentOwnerId + ' {\
+                    border-left: none;\
+                }\
+            </style>'
+        );
+    };
+
     var insertPetsForm = function (parent) {
         parent.empty().append(
             '<h6 id="form-title-' + currentOwnerId + '">Añadir nueva mascota:</h6>\
@@ -206,17 +385,156 @@ var PetsView = (function () {
                         <input name="name" type="text" value="" placeholder="Nombre" class="form-control" required/>\
                     </div>\
                     <div class="col-sm-5">\
-                        <select name="type" class="form-control" required>\
-                            <option value="" disabled selected>Cargando tipos...</option>\
-                        </select>\
+                        <div class="position-relative">\
+                            <input type="text" class="form-control" id="typeSearch-' + currentOwnerId + '" \
+                                placeholder="Buscar o escribir tipo..." required autocomplete="off">\
+                            <input type="hidden" name="type" id="typeId-' + currentOwnerId + '" required>\
+                            <div id="typesList-' + currentOwnerId + '" class="types-dropdown" style="display: none;">\
+                            </div>\
+                        </div>\
                     </div>\
                     <div class="col-sm-3">\
                         <input id="btnSubmit-' + currentOwnerId + '" type="submit" value="Crear" class="btn btn-primary" />\
                         <input id="btnClear-' + currentOwnerId + '" type="reset" value="Limpiar" class="btn" />\
                     </div>\
                 </div>\
-            </form>'
+            </form>\
+            <style>\
+                .types-dropdown {\
+                    position: absolute;\
+                    top: 100%;\
+                    left: 0;\
+                    right: 0;\
+                    max-height: 200px;\
+                    overflow-y: auto;\
+                    background: white;\
+                    border: 1px solid #dee2e6;\
+                    border-radius: 4px;\
+                    margin-top: 2px;\
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);\
+                    z-index: 1000;\
+                }\
+                .type-item {\
+                    padding: 8px 12px;\
+                    cursor: pointer;\
+                    transition: background-color 0.2s;\
+                }\
+                .type-item:hover {\
+                    background-color: #e9ecef;\
+                }\
+                .type-item:not(:last-child) {\
+                    border-bottom: 1px solid #dee2e6;\
+                }\
+                .type-item.create-new {\
+                    border-top: 2px solid #dee2e6;\
+                    font-style: italic;\
+                    color: #0d6efd;\
+                }\
+            </style>'
         );
+
+        // Add handlers for type search
+        var $searchInput = $('#typeSearch-' + currentOwnerId);
+        var $typesList = $('#typesList-' + currentOwnerId);
+        var $typeIdInput = $('#typeId-' + currentOwnerId);
+
+        // Function to show the types list
+        function showTypesList() {
+            var searchText = $searchInput.val().toLowerCase();
+            updateTypesList(searchText);
+            $typesList.show();
+        }
+
+        // Function to hide the types list
+        function hideTypesList() {
+            setTimeout(() => $typesList.hide(), 200);
+        }
+
+        // Function to update the types list based on search
+        function updateTypesList(searchText) {
+            $typesList.empty();
+            
+            // Filter and add matching types
+            var hasMatches = false;
+            currentTypes.forEach(function(type) {
+                if (!searchText || type.name.toLowerCase().includes(searchText)) {
+                    hasMatches = true;
+                    $typesList.append(
+                        $('<div>', {
+                            class: 'type-item',
+                            'data-type-id': type.id,
+                            'data-type-name': type.name,
+                            text: type.name
+                        })
+                    );
+                }
+            });
+
+            // Add "Crear nuevo tipo" option if we have text and no exact match
+            if (searchText && !currentTypes.find(type =>
+                type.name.toLowerCase() === searchText.toLowerCase()
+            )) {
+                $typesList.append(
+                    $('<div>', {
+                        class: 'type-item create-new',
+                        'data-action': 'create',
+                        text: 'Crear nuevo tipo: "' + searchText + '"'
+                    })
+                );
+            }
+        }
+
+        // Handle input changes
+        $searchInput.on('input focus', function() {
+            showTypesList();
+        });
+
+        $searchInput.on('blur', hideTypesList);
+
+        // Handle type selection
+        $typesList.on('mousedown', '.type-item', function(e) {
+            e.preventDefault(); // Prevent input blur from hiding list
+            var $item = $(this);
+            
+            if ($item.data('action') === 'create') {
+                // Create new type
+                var newTypeName = $searchInput.val();
+                typeDao.addType({ name: newTypeName },
+                    function(newType) {
+                        currentTypes.push(newType);
+                        $searchInput.val(newType.name);
+                        $typeIdInput.val(newType.id);
+                        $typesList.hide();
+                        showSuccessMessage('Nuevo tipo creado: ' + newType.name);
+                    },
+                    function(error) {
+                        showErrorMessage(error);
+                    }
+                );
+            } else {
+                // Select existing type
+                var typeName = $item.data('type-name');
+                var typeId = $item.data('type-id');
+                $searchInput.val(typeName);
+                $typeIdInput.val(typeId);
+                $typesList.hide();
+            }
+        });
+
+        // Update input value when editing
+        this.editPet = function(id) {
+            var pet = self.getPetInRow(id);
+            if (pet) {
+                $searchInput.val(pet.type.name);
+                $typeIdInput.val(pet.type.id);
+            }
+        };
+
+        // Clear values on form reset
+        $('#btnClear-' + currentOwnerId).click(function() {
+            $searchInput.val('');
+            $typeIdInput.val('');
+        });
     };
 
     var createPetRow = function (pet) {
