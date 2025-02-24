@@ -1,21 +1,20 @@
 var PetsView = (function () {
     var dao;
+    var typeDao;
     var currentOwnerId;
-
-    // Referencia a this que permite acceder a las funciones públicas desde las funciones de jQuery.
     var self;
-
     var formId;
     var listId;
     var formQuery;
     var listQuery;
 
-    function PetsView(petsDao, formContainerId, listContainerId, ownerId) {
+    function PetsView(petsDao, typesDao, formContainerId, listContainerId, ownerId) {
+        console.log('Initializing PetsView with ownerId:', ownerId);
         dao = petsDao;
+        typeDao = typesDao;
         self = this;
         currentOwnerId = ownerId;
 
-        // Make IDs unique per owner
         formId = 'pets-form-' + currentOwnerId;
         listId = 'pets-list-' + currentOwnerId;
         formQuery = '#' + formId;
@@ -24,11 +23,22 @@ var PetsView = (function () {
         insertPetsForm($('#' + formContainerId));
         insertPetsList($('#' + listContainerId));
 
+        // Initialize form with types
+        console.log('Loading pet types...');
+        typeDao.listTypes(
+            function(types) {
+                console.log('Types loaded successfully:', types);
+                loadTypeSelect(types);
+            },
+            function(error) {
+                console.error('Error loading types:', error);
+                // Don't show error message since types might still be visible
+            }
+        );
+
         this.init = function () {
             refreshPetsList();
 
-            // La acción por defecto de enviar formulario (submit) se sobreescribe
-            // para que el envío sea a través de AJAX
             $(formQuery).submit(function (event) {
                 event.preventDefault();
 
@@ -39,7 +49,7 @@ var PetsView = (function () {
                     dao.modifyPet(currentOwnerId, pet,
                         function (pet) {
                             $('#pet-' + pet.id + '-owner-' + currentOwnerId + ' td.name').text(pet.name);
-                            $('#pet-' + pet.id + '-owner-' + currentOwnerId + ' td.type').text(pet.type);
+                            $('#pet-' + pet.id + '-owner-' + currentOwnerId + ' td.type').text(pet.type.name);
                             self.resetForm();
                             showSuccessMessage('Mascota modificada correctamente');
                         },
@@ -47,16 +57,12 @@ var PetsView = (function () {
                         self.enableForm
                     );
                 } else {
-                    // Disable form while submitting
                     self.disableForm();
 
                     dao.addPet(currentOwnerId, pet,
                         function (pet) {
-                            // Clear form fields first
                             self.resetForm();
-                            // Then refresh the list
                             refreshPetsList();
-                            // Re-enable form
                             self.enableForm();
                             showSuccessMessage('Mascota añadida correctamente');
                         },
@@ -75,10 +81,11 @@ var PetsView = (function () {
 
         this.getPetInForm = function () {
             var form = $(formQuery);
+            var typeId = form.find('select[name="type"]').val();
             return {
                 'id': form.find('input[name="id"]').val(),
                 'name': form.find('input[name="name"]').val(),
-                'type': form.find('input[name="type"]').val()
+                'type': { 'id': typeId }
             };
         };
 
@@ -89,7 +96,10 @@ var PetsView = (function () {
                 return {
                     'id': id,
                     'name': row.find('td.name').text(),
-                    'type': row.find('td.type').text()
+                    'type': {
+                        'id': row.find('td.type').data('type-id'),
+                        'name': row.find('td.type').text()
+                    }
                 };
             } else {
                 return undefined;
@@ -104,7 +114,7 @@ var PetsView = (function () {
 
                 form.find('input[name="id"]').val(id);
                 form.find('input[name="name"]').val(row.find('td.name').text());
-                form.find('input[name="type"]').val(row.find('td.type').text());
+                form.find('select[name="type"]').val(row.find('td.type').data('type-id'));
 
                 $('#btnSubmit-' + currentOwnerId).val('Modificar');
                 $('#form-title-' + currentOwnerId).text('Modificar mascota:');
@@ -128,11 +138,11 @@ var PetsView = (function () {
         };
 
         this.disableForm = function () {
-            $(formQuery + ' input').prop('disabled', true);
+            $(formQuery + ' input, ' + formQuery + ' select').prop('disabled', true);
         };
 
         this.enableForm = function () {
-            $(formQuery + ' input').prop('disabled', false);
+            $(formQuery + ' input, ' + formQuery + ' select').prop('disabled', false);
         };
 
         this.resetForm = function () {
@@ -142,6 +152,33 @@ var PetsView = (function () {
             $('#form-title-' + currentOwnerId).text('Añadir nueva mascota:');
         };
     }
+
+    var loadTypeSelect = function(types) {
+        var select = $(formQuery + ' select[name="type"]');
+        select.empty();
+        
+        // Add default option
+        select.append($('<option>', {
+            value: '',
+            text: 'Seleccione un tipo',
+            disabled: true,
+            selected: true
+        }));
+        
+        // Add types from server
+        if (types && types.length > 0) {
+            $.each(types, function(i, type) {
+                select.append($('<option>', {
+                    value: type.id,
+                    text: type.name
+                }));
+            });
+            console.log('Added', types.length, 'types to select');
+        } else {
+            console.warn('No types available to load in select');
+        }
+    };
+
     var insertPetsList = function (parent) {
         parent.empty().append(
             '<div id="feedback-' + currentOwnerId + '" class="alert" style="display:none; margin-bottom: 15px;"></div>\
@@ -169,7 +206,9 @@ var PetsView = (function () {
                         <input name="name" type="text" value="" placeholder="Nombre" class="form-control" required/>\
                     </div>\
                     <div class="col-sm-5">\
-                        <input name="type" type="text" value="" placeholder="Tipo" class="form-control" required/>\
+                        <select name="type" class="form-control" required>\
+                            <option value="" disabled selected>Cargando tipos...</option>\
+                        </select>\
                     </div>\
                     <div class="col-sm-3">\
                         <input id="btnSubmit-' + currentOwnerId + '" type="submit" value="Crear" class="btn btn-primary" />\
@@ -183,10 +222,10 @@ var PetsView = (function () {
     var createPetRow = function (pet) {
         return '<tr id="pet-' + pet.id + '-owner-' + currentOwnerId + '" class="row">\
             <td class="name col-sm-4">' + pet.name + '</td>\
-            <td class="type col-sm-5">' + pet.type + '</td>\
+            <td class="type col-sm-5" data-type-id="' + pet.type.id + '">' + pet.type.name + '</td>\
             <td class="col-sm-3">\
-                <a class="edit btn btn-primary" href="#">Editar</a>\
-                <a class="delete btn btn-warning" href="#">Eliminar</a>\
+                <a class="edit btn btn-primary btn-sm me-1" href="#">Editar</a>\
+                <a class="delete btn btn-warning btn-sm me-1" href="#">Eliminar</a>\
             </td>\
         </tr>';
     };

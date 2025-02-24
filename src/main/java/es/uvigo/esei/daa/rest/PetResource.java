@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -11,7 +12,9 @@ import javax.ws.rs.core.Response;
 import es.uvigo.esei.daa.dao.PetDAO;
 import es.uvigo.esei.daa.entities.Pet;
 import es.uvigo.esei.daa.entities.Person;
+import es.uvigo.esei.daa.entities.Type;
 import es.uvigo.esei.daa.dao.PeopleDAO;
+import es.uvigo.esei.daa.dao.TypeDAO;
 import es.uvigo.esei.daa.dao.DAOException;
 
 @Path("/people/{id}/pets")
@@ -19,9 +22,11 @@ import es.uvigo.esei.daa.dao.DAOException;
 public class PetResource {
     private final PetDAO dao = new PetDAO();
     private final PeopleDAO peopleDao = new PeopleDAO();
+    private final TypeDAO typeDao = new TypeDAO();
     private final static Logger LOG = Logger.getLogger(PetResource.class.getName());
 
     @GET
+    @RolesAllowed({"ADMIN", "USER"})
     public List<Pet> list(@PathParam("id") int ownerId) {
         try {
             return dao.listByOwner(ownerId);
@@ -33,6 +38,7 @@ public class PetResource {
 
     @GET
     @Path("/{id}")
+    @RolesAllowed({"ADMIN", "USER"})
     public Pet get(@PathParam("id") int id) {
         try {
             return dao.get(id);
@@ -47,10 +53,12 @@ public class PetResource {
 
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
+    @RolesAllowed("ADMIN")
     public Response add(Pet pet) {
         try {
             Person owner = peopleDao.get(pet.getOwner().getId());
-            Pet newPet = dao.add(pet.getName(), owner, pet.getType());
+            Type type = typeDao.get(pet.getType().getId());
+            Pet newPet = dao.add(pet.getName(), owner, type);
             return Response.ok(newPet).build();
         } catch (IllegalArgumentException e) {
             LOG.log(Level.FINE, "Invalid data in add method", e);
@@ -64,11 +72,12 @@ public class PetResource {
     @PUT
     @Path("/{id}")
     @Consumes(MediaType.APPLICATION_JSON)
+    @RolesAllowed("ADMIN")
     public Response modify(@PathParam("id") int id, Pet pet) {
         try {
             Pet existingPet = dao.get(id);
             existingPet.setName(pet.getName());
-            existingPet.setType(pet.getType());
+            existingPet.setType(typeDao.get(pet.getType().getId()));
             existingPet.setOwner(peopleDao.get(pet.getOwner().getId()));
             dao.modify(existingPet);
             return Response.ok(existingPet).build();
@@ -83,6 +92,7 @@ public class PetResource {
 
     @DELETE
     @Path("/{id}")
+    @RolesAllowed("ADMIN")
     public Response delete(@PathParam("id") int id) {
         try {
             dao.delete(id);

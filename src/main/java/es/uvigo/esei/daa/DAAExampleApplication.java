@@ -13,6 +13,7 @@ import javax.ws.rs.core.Application;
 import es.uvigo.esei.daa.rest.PeopleResource;
 import es.uvigo.esei.daa.rest.UsersResource;
 import es.uvigo.esei.daa.rest.PetResource;
+import es.uvigo.esei.daa.rest.TypeResource;
 
 /**
  * Configuration of the REST application. This class includes the resources and
@@ -23,20 +24,21 @@ import es.uvigo.esei.daa.rest.PetResource;
  */
 @ApplicationPath("/rest/*")
 public class DAAExampleApplication extends Application {
-	@Override
-	public Set<Class<?>> getClasses() {
-		return Stream.of(
-			PeopleResource.class,
-			UsersResource.class,
-			PetResource.class
-		).collect(toSet());
-	}
-	
-	@Override
-	public Map<String, Object> getProperties() {
-		// Activates JSON automatic conversion in JAX-RS
-		return Collections.singletonMap(
-			"com.sun.jersey.api.json.POJOMappingFeature", true
-		);
-	}
+    @Override
+    public Set<Class<?>> getClasses() {
+        return Stream.of(
+            PeopleResource.class,
+            UsersResource.class,
+            PetResource.class,
+            TypeResource.class
+        ).collect(toSet());
+    }
+
+    @Override
+    public Map<String, Object> getProperties() {
+        // Activates JSON automatic conversion in JAX-RS
+        return Collections.singletonMap(
+            "com.sun.jersey.api.json.POJOMappingFeature", true
+        );
+    }
 }

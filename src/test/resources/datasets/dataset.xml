@@ -2,17 +2,31 @@
 <!DOCTYPE dataset SYSTEM "dataset.dtd">
 
 <dataset>
-	<people id="1" name="Antón" surname="Álvarez" />
-	<people id="2" name="Ana" surname="Amargo" />
-	<people id="3" name="Manuel" surname="Martínez" />
-	<people id="4" name="María" surname="Márquez" />
-	<people id="5" name="Lorenzo" surname="López" />
-	<people id="6" name="Laura" surname="Laredo" />
-	<people id="7" name="Perico" surname="Palotes" />
-	<people id="8" name="Patricia" surname="Pérez" />
-	<people id="9" name="Julia" surname="Justa" />
-	<people id="10" name="Juan" surname="Jiménez" />
+<people id="1" name="Antón" surname="Álvarez" />
+<people id="2" name="Ana" surname="Amargo" />
+<people id="3" name="Manuel" surname="Martínez" />
+<people id="4" name="María" surname="Márquez" />
+<people id="5" name="Lorenzo" surname="López" />
+<people id="6" name="Laura" surname="Laredo" />
+<people id="7" name="Perico" surname="Palotes" />
+<people id="8" name="Patricia" surname="Pérez" />
+<people id="9" name="Julia" surname="Justa" />
+<people id="10" name="Juan" surname="Jiménez" />
 
-	<users login="admin" password="713bfda78870bf9d1b261f565286f85e97ee614efe5f0faf7c34e7ca4f65baca" role="ADMIN"/>
-	<users login="normal" password="7bf24d6ca2242430343ab7e3efb89559a47784eea1123be989c1b2fb2ef66e83" role="USER" />
+<users login="admin" password="713bfda78870bf9d1b261f565286f85e97ee614efe5f0faf7c34e7ca4f65baca" role="ADMIN"/>
+<users login="normal" password="7bf24d6ca2242430343ab7e3efb89559a47784eea1123be989c1b2fb2ef66e83" role="USER" />
+
+<types id="1" name="dog" />
+<types id="2" name="cat" />
+<types id="3" name="rabbit" />
+<types id="4" name="bird" />
+<types id="5" name="fish" />
+<types id="6" name="hamster" />
+<types id="7" name="turtle" />
+
+<pets id="1" name="Max" owner_id="1" type_id="1" />
+<pets id="2" name="Luna" owner_id="2" type_id="2" />
+<pets id="3" name="Charlie" owner_id="3" type_id="1" />
+<pets id="4" name="Bella" owner_id="4" type_id="2" />
+<pets id="5" name="Thumper" owner_id="5" type_id="3" />
 </dataset>

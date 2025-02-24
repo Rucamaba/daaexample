@@ -13,6 +13,7 @@ var PeopleView = (function() {
         dao = peopleDao;
         self = this;
         this.petsDao = new PetsDAO();
+        this.typesDao = new TypesDAO();
         
         insertPeopleForm($('#' + formContainerId));
         insertPeopleList($('#' + listContainerId));
@@ -217,7 +218,7 @@ var PeopleView = (function() {
                         } else {
                             pets.forEach(function(pet) {
                                 petsList += '<li class="list-group-item">\
-                                    <strong>' + pet.name + '</strong> (' + pet.type + ')\
+                                    <strong>' + pet.name + '</strong> (' + pet.type.name + ')\
                                 </li>';
                             });
                         }
@@ -235,6 +236,7 @@ var PeopleView = (function() {
                         // Initialize PetsView for this person
                         var petsView = new PetsView(
                             self.petsDao,
+                            self.typesDao,
                             'pets-form-container-' + person.id,
                             'pets-list-container-' + person.id,
                             person.id

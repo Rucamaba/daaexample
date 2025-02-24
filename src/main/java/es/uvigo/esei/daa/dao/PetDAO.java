@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 
 import es.uvigo.esei.daa.entities.Pet;
 import es.uvigo.esei.daa.entities.Person;
+import es.uvigo.esei.daa.entities.Type;
 
 /**
  * DAO class for the {@link Pet} entities.
@@ -117,19 +118,19 @@ public class PetDAO extends DAO {
      * @throws DAOException if an error happens while persisting the new pet.
      * @throws IllegalArgumentException if the name, owner, or type are {@code null}.
      */
-    public Pet add(String name, Person owner, String type)
+    public Pet add(String name, Person owner, Type type)
     throws DAOException, IllegalArgumentException {
         if (name == null || owner == null || type == null) {
             throw new IllegalArgumentException("name, owner, and type can't be null");
         }
         
         try (Connection conn = this.getConnection()) {
-            final String query = "INSERT INTO pets (name, owner_id, type) VALUES (?, ?, ?)";
+            final String query = "INSERT INTO pets (name, owner_id, type_id) VALUES (?, ?, ?)";
             
             try (PreparedStatement statement = conn.prepareStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
                 statement.setString(1, name);
                 statement.setInt(2, owner.getId());
-                statement.setString(3, type);
+                statement.setInt(3, type.getId());
                 
                 if (statement.executeUpdate() == 1) {
                     try (ResultSet resultKeys = statement.getGeneratedKeys()) {
@@ -167,12 +168,12 @@ public class PetDAO extends DAO {
         }
         
         try (Connection conn = this.getConnection()) {
-            final String query = "UPDATE pets SET name=?, owner_id=?, type=? WHERE id=?";
+            final String query = "UPDATE pets SET name=?, owner_id=?, type_id=? WHERE id=?";
             
             try (PreparedStatement statement = conn.prepareStatement(query)) {
                 statement.setString(1, pet.getName());
                 statement.setInt(2, pet.getOwner().getId());
-                statement.setString(3, pet.getType());
+                statement.setInt(3, pet.getType().getId());
                 statement.setInt(4, pet.getId());
                 
                 if (statement.executeUpdate() != 1) {
@@ -212,19 +213,19 @@ public class PetDAO extends DAO {
     }
 
     private Pet rowToEntity(ResultSet result) throws SQLException {
-        // Assuming you have a method to get a Person by ID
-        Person owner;
         try {
-            owner = new PeopleDAO().get(result.getInt("owner_id"));
+            Person owner = new PeopleDAO().get(result.getInt("owner_id"));
+            Type type = new TypeDAO().get(result.getInt("type_id"));
+            
+            return new Pet(
+                result.getInt("id"),
+                result.getString("name"),
+                owner,
+                type
+            );
         } catch (DAOException e) {
-            LOG.log(Level.SEVERE, "Error getting owner", e);
-            throw new SQLException("Error getting owner", e);
+            LOG.log(Level.SEVERE, "Error getting pet relationships", e);
+            throw new SQLException("Error getting pet relationships", e);
         }
-        return new Pet(
-            result.getInt("id"),
-            result.getString("name"),
-            owner,
-            result.getString("type")
-        );
     }
 }
