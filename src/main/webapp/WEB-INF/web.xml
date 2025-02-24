@@ -19,7 +19,7 @@
     </init-param>
     <init-param>
       <param-name>cors.allowed.headers</param-name>
-      <param-value>Authorization</param-value>
+      <param-value>Authorization, Custom-Auth</param-value>
     </init-param>
     <init-param>
       <param-name>cors.allowed.methods</param-name>
@@ -31,6 +31,16 @@
     <url-pattern>/rest/*</url-pattern>
   </filter-mapping>
 
+  <!-- Allow unauthenticated access to login endpoint -->
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>Login Endpoint</web-resource-name>
+      <url-pattern>/rest/users/*</url-pattern>
+      <http-method>GET</http-method>
+    </web-resource-collection>
+  </security-constraint>
+
+  <!-- Protect other endpoints -->
   <security-constraint>
     <web-resource-collection>
       <web-resource-name>Protected Area</web-resource-name>

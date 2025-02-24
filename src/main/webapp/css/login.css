@@ -1,48 +1,132 @@
 html, body {
-	height: 100%;
+    height: 100%;
+    margin: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 body {
-	display: -ms-flexbox;
-	display: -webkit-box;
-	display: flex;
-	-ms-flex-align: center;
-	-ms-flex-pack: center;
-	-webkit-box-align: center;
-	align-items: center;
-	-webkit-box-pack: center;
-	justify-content: center;
-	padding-top: 40px;
-	padding-bottom: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-#form-signin {
-	width: 100%;
-	max-width: 330px;
-	padding: 15px;
-	margin: 0 auto;
+#form-singin {
+    width: 100%;
+    max-width: 380px;
+    padding: 2rem;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
 }
 
-#form-signin .form-control {
-	position: relative;
-	box-sizing: border-box;
-	height: auto;
-	padding: 10px;
-	font-size: 16px;
+#form-singin:hover {
+    transform: translateY(-5px);
 }
 
-#form-signin .form-control:focus {
-	z-index: 2;
+#form-singin h1 {
+    color: #333;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
+
+#form-singin:before {
+    content: '🔐';
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+#login-error {
+    font-size: 0.9rem;
+    border-radius: 8px;
+    background-color: #fff5f5;
+    border: 1px solid #feb2b2;
+    color: #c53030;
+    padding: 0.75rem 1rem;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    margin-bottom: 1rem;
+}
+
+#login-error.show {
+    opacity: 1;
+    transform: translateY(0);
+    animation: shake 0.8s ease-in-out;
+}
+
+#form-singin .form-control {
+    position: relative;
+    box-sizing: border-box;
+    height: auto;
+    padding: 12px 15px;
+    font-size: 16px;
+    border: 2px solid #eee;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+#form-singin .form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: none;
 }
 
 #login {
-	margin-bottom: -1px;
-	border-bottom-right-radius: 0;
-	border-bottom-left-radius: 0;
+    margin-bottom: 1rem;
 }
 
 #password {
-	margin-bottom: 10px;
-	border-top-left-radius: 0;
-	border-top-right-radius: 0;
+    margin-bottom: 0.5rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    border: none !important;
+    padding: 12px 20px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+.d-none {
+    display: none !important;
+}
+
+@media (max-width: 480px) {
+    #form-singin {
+        padding: 1.5rem;
+    }
 }
