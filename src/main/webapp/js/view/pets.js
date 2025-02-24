@@ -107,6 +107,7 @@ var PetsView = (function () {
                 form.find('input[name="type"]').val(row.find('td.type').text());
 
                 $('#btnSubmit-' + currentOwnerId).val('Modificar');
+                $('#form-title-' + currentOwnerId).text('Modificar mascota:');
             }
         };
 
@@ -138,9 +139,9 @@ var PetsView = (function () {
             $(formQuery)[0].reset();
             $(formQuery + ' input[name="id"]').val('');
             $('#btnSubmit-' + currentOwnerId).val('Crear');
+            $('#form-title-' + currentOwnerId).text('Añadir nueva mascota:');
         };
-    };
-
+    }
     var insertPetsList = function (parent) {
         parent.empty().append(
             '<div id="feedback-' + currentOwnerId + '" class="alert" style="display:none; margin-bottom: 15px;"></div>\
@@ -160,7 +161,7 @@ var PetsView = (function () {
 
     var insertPetsForm = function (parent) {
         parent.empty().append(
-            '<h6>Añadir nueva mascota:</h6>\
+            '<h6 id="form-title-' + currentOwnerId + '">Añadir nueva mascota:</h6>\
             <form id="' + formId + '" class="mb-5 mb-10">\
                 <input name="id" type="hidden" value=""/>\
                 <div class="row">\
@@ -227,11 +228,13 @@ var PetsView = (function () {
     };
 
     var addRowListeners = function (pet) {
-        $('#pet-' + pet.id + '-owner-' + currentOwnerId + ' a.edit').click(function () {
+        $('#pet-' + pet.id + '-owner-' + currentOwnerId + ' a.edit').click(function (event) {
+            event.preventDefault();
             self.editPet(pet.id);
         });
 
-        $('#pet-' + pet.id + '-owner-' + currentOwnerId + ' a.delete').click(function () {
+        $('#pet-' + pet.id + '-owner-' + currentOwnerId + ' a.delete').click(function (event) {
+            event.preventDefault();
             self.deletePet(pet.id);
         });
     };
