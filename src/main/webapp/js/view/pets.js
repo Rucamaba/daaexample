@@ -151,6 +151,14 @@ var PetsView = (function () {
             });
         };
 
+        this.cleanup = function() {
+            // Remove the modal
+            $('#typeModal-' + currentOwnerId).remove();
+            // Clear the form and list containers
+            $('#' + formContainerId).empty();
+            $('#' + listContainerId).empty();
+        };
+
         this.getPetInForm = function () {
             var form = $(formQuery);
             var typeId = form.find('input[name="type"]').val();

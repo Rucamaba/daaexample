@@ -9,6 +9,9 @@ var PeopleView = (function() {
     var formQuery = '#' + formId;
     var listQuery = '#' + listId;
     
+    // Store PetsView instances by person ID
+    var petsViews = {};
+    
     function PeopleView(peopleDao, formContainerId, listContainerId) {
         dao = peopleDao;
         self = this;
@@ -101,7 +104,16 @@ var PeopleView = (function() {
             if (confirm('Está a punto de eliminar a una persona. ¿Está seguro de que desea continuar?')) {
                 dao.deletePerson(id,
                     function() {
-                        $('tr#person-' + id).remove();
+                        // Cleanup PetsView if it exists
+                        if (petsViews[id]) {
+                            petsViews[id].cleanup();
+                            delete petsViews[id];
+                        }
+                        // Remove both the person row and the pets list row
+                        var $personRow = $('tr#person-' + id);
+                        var $petsListRow = $personRow.next('.pets-list');
+                        $petsListRow.remove();
+                        $personRow.remove();
                     },
                     showErrorMessage
                 );
@@ -199,6 +211,11 @@ var PeopleView = (function() {
             
             if (existingPetsList.length) {
                 existingPetsList.remove();
+                // Clean up PetsView when closing the pets list
+                if (petsViews[person.id]) {
+                    petsViews[person.id].cleanup();
+                    delete petsViews[person.id];
+                }
                 return;
             }
 
@@ -233,7 +250,7 @@ var PeopleView = (function() {
                         
                         personRow.after(petsList);
                         
-                        // Initialize PetsView for this person
+                        // Initialize PetsView for this person and store it
                         var petsView = new PetsView(
                             self.petsDao,
                             self.typesDao,
@@ -241,6 +258,7 @@ var PeopleView = (function() {
                             'pets-list-container-' + person.id,
                             person.id
                         );
+                        petsViews[person.id] = petsView;
                         petsView.init();
                     },
                     function(error) {
