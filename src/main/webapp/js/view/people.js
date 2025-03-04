@@ -18,7 +18,12 @@ var PeopleView = (function() {
         this.petsDao = new PetsDAO();
         this.typesDao = new TypesDAO();
         
-        insertPeopleForm($('#' + formContainerId));
+        const userRole = localStorage.getItem('user-role');
+        const isAdmin = userRole === 'ADMIN';
+        
+        if (isAdmin) {
+            insertPeopleForm($('#' + formContainerId));
+        }
         insertPeopleList($('#' + listContainerId));
         
         this.init = function() {
@@ -176,14 +181,21 @@ var PeopleView = (function() {
     };
 
     var createPersonRow = function(person) {
+        const userRole = localStorage.getItem('user-role');
+        const isAdmin = userRole === 'ADMIN';
+        
+        var actionButtons = '<a class="view-pets btn btn-success btn-sm" href="#">Ver Mascotas</a>';
+        if (isAdmin) {
+            actionButtons =
+                '<a class="edit btn btn-primary btn-sm me-1" href="#">Editar</a>' +
+                '<a class="delete btn btn-warning btn-sm me-1" href="#">Eliminar</a>' +
+                actionButtons;
+        }
+        
         var row = $('<tr id="person-'+ person.id +'" class="row">\
             <td class="name col-sm-3">' + person.name + '</td>\
             <td class="surname col-sm-4">' + person.surname + '</td>\
-            <td class="col-sm-5">\
-                <a class="edit btn btn-primary btn-sm me-1" href="#">Editar</a>\
-                <a class="delete btn btn-warning btn-sm me-1" href="#">Eliminar</a>\
-                <a class="view-pets btn btn-success btn-sm" href="#">Ver Mascotas</a>\
-            </td>\
+            <td class="col-sm-5">' + actionButtons + '</td>\
         </tr>');
         
         return row[0].outerHTML;

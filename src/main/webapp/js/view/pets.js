@@ -21,9 +21,14 @@ var PetsView = (function () {
         formQuery = '#' + formId;
         listQuery = '#' + listId;
 
-        insertPetsForm($('#' + formContainerId));
+        const userRole = localStorage.getItem('user-role');
+        const isAdmin = userRole === 'ADMIN';
+
+        if (isAdmin) {
+            insertPetsForm($('#' + formContainerId));
+            insertTypeModal();
+        }
         insertPetsList($('#' + listContainerId));
-        insertTypeModal();
 
         // Initialize form with types
         console.log('Loading pet types...');
@@ -546,13 +551,20 @@ var PetsView = (function () {
     };
 
     var createPetRow = function (pet) {
+        const userRole = localStorage.getItem('user-role');
+        const isAdmin = userRole === 'ADMIN';
+        
+        var actionButtons = '';
+        if (isAdmin) {
+            actionButtons =
+                '<a class="edit btn btn-primary btn-sm me-1" href="#">Editar</a>' +
+                '<a class="delete btn btn-warning btn-sm me-1" href="#">Eliminar</a>';
+        }
+        
         return '<tr id="pet-' + pet.id + '-owner-' + currentOwnerId + '" class="row">\
             <td class="name col-sm-4">' + pet.name + '</td>\
             <td class="type col-sm-5" data-type-id="' + pet.type.id + '">' + pet.type.name + '</td>\
-            <td class="col-sm-3">\
-                <a class="edit btn btn-primary btn-sm me-1" href="#">Editar</a>\
-                <a class="delete btn btn-warning btn-sm me-1" href="#">Eliminar</a>\
-            </td>\
+            <td class="col-sm-3">' + actionButtons + '</td>\
         </tr>';
     };
 

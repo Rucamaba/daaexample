@@ -22,8 +22,9 @@ function doLogin(login, password) {
             'Custom-Auth': 'Basic ' + btoa(login + ":" + password)
         }
     })
-    .done(function() {
+    .done(function(user) {
         localStorage.setItem('authorization-token', btoa(login + ":" + password));
+        localStorage.setItem('user-role', user.role);
         window.location = 'main.html';
     })
     .fail(function() {

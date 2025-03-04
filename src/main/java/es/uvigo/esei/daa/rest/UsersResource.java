@@ -9,10 +9,8 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.HeaderParam;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
 
 import es.uvigo.esei.daa.dao.DAOException;
 import es.uvigo.esei.daa.dao.UsersDAO;
@@ -24,19 +22,12 @@ public class UsersResource {
     
     private final UsersDAO dao;
     
-    private @Context SecurityContext security;
-    
     public UsersResource() {
         this(new UsersDAO());
     }
     
     UsersResource(UsersDAO dao) {
-        this(dao, null);
-    }
-    
-    UsersResource(UsersDAO dao, SecurityContext security) {
         this.dao = dao;
-        this.security = security;
     }
     
     @GET
@@ -62,6 +53,7 @@ public class UsersResource {
                 }
             }
             
+            // Don't include WWW-Authenticate header to prevent browser auth popup
             return Response.status(Response.Status.UNAUTHORIZED)
                 .entity("Invalid credentials")
                 .build();
@@ -81,11 +73,4 @@ public class UsersResource {
         }
     }
     
-    private String getLogin() {
-        return this.security.getUserPrincipal().getName();
-    }
-    
-    private boolean isAdmin() {
-        return this.security.isUserInRole("ADMIN");
-    }
 }
